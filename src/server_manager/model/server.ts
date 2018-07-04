@@ -48,6 +48,12 @@ export interface Server {
 
   // Gets the date when this server was created.
   getCreatedDate(): Date;
+
+  // Returns the server's domain name or IP address.
+  getHostname(): string;
+
+  // Returns the server's management API port.
+  getManagementPort(): number;
 }
 
 // Manual servers are servers which the user has independently setup to run
@@ -69,8 +75,8 @@ export interface ManagedServer extends Server {
 
 // The managed machine where the Outline Server is running.
 export interface ManagedServerHost {
-  // Returns the monthly transfer limit.
-  getMonthlyTransferLimit(): DataAmount;
+  // Returns the monthly outbound transfer limit.
+  getMonthlyOutboundTransferLimit(): DataAmount;
   // Returns the monthly cost.
   getMonthlyCost(): MonetaryCost;
   // Returns the server region.

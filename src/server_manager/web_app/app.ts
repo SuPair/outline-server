@@ -122,7 +122,8 @@ export class App {
     });
 
     appRoot.addEventListener('ManualServerEntered', (event: PolymerEvent) => {
-      const userInputConfig = event.detail.userInputConfig;
+      const userInputConfig =
+          event.detail.userInputConfig.replace(/\s+/g, '');  // Remove whitespace
       const manualServerEntryEl = appRoot.getServerCreator().getManualServerEntry();
       this.createManualServer(userInputConfig)
           .then(() => {
@@ -480,21 +481,18 @@ export class App {
     // Show view and initialize fields from selectedServer.
     const view = this.appRoot.getAndShowServerView();
     view.serverName = selectedServer.getName();
+    view.serverHostname = selectedServer.getHostname();
+    view.serverManagementPort = selectedServer.getManagementPort();
+    view.serverCreationDate = selectedServer.getCreatedDate().toLocaleString(
+        'en-US', {year: 'numeric', month: 'long', day: 'numeric'});
 
     if (isManagedServer(selectedServer)) {
       const host = selectedServer.getHost();
       view.monthlyCost = host.getMonthlyCost().usd;
       view.deleteEnabled = true;
       view.forgetEnabled = false;
-      // Set monthly transfer byte limit for UI.  For UI simplicity we are:
-      // 1. Showing 1 TB as 1000 GB (not 1024)
-      // 2. Dividing the total transfer limit by 2 to account for inbound and
-      //    outbound connections, i.e. if I download a 10 GB file, it has to
-      //    first be download from destination to the Outline server, then from
-      //    the Outline server to my client, and costs me 20 GB against my quota,
-      //    in this case it's simpler to say I used 10/500GB instead of 20/1000GB.
-      const monthlyTransferGb = host.getMonthlyTransferLimit().terabytes * 1000 / 2;
-      view.monthlyTransferBytes = monthlyTransferGb * (2 ** 30);
+      const monthlyOutboundTransferGb = host.getMonthlyOutboundTransferLimit().terabytes * 1000;
+      view.monthlyOutboundTransferBytes = monthlyOutboundTransferGb * (2 ** 30);
     } else {
       // TODO(dborkan): consider using dom-if with restamp property
       // https://www.polymer-project.org/1.0/docs/api/elements/dom-if
@@ -502,7 +500,7 @@ export class App {
       // the server-view when we display a new server.  This should be fixed
       // once we support multiple servers.
       view.monthlyCost = undefined;
-      view.monthlyTransferBytes = undefined;
+      view.monthlyOutboundTransferBytes = undefined;
       view.deleteEnabled = false;
       view.forgetEnabled = true;
     }
@@ -695,7 +693,7 @@ export class App {
   private forgetSelectedServer() {
     const serverToForget = this.selectedServer;
     if (!isManualServer(serverToForget)) {
-      const msg = 'cannot delete non-ManualServer';
+      const msg = 'cannot forget non-ManualServer';
       SentryErrorReporter.logError(msg);
       throw new Error(msg);
     }
